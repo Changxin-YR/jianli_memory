@@ -277,3 +277,49 @@ L4：能回答取舍、异常场景和连续追问
 - 每日必须有综合验收
 - 未通过时只补薄弱模块，不整天推倒重学
 
+
+
+# 11. Day 1 终审新增约束
+
+根据 2026 年近期 AI 应用 / Agent / AI 全栈岗位与公开面经，Day 1 必须额外覆盖：
+
+- Python 装饰器
+- iterator / generator / yield
+- 深拷贝 / 浅拷贝
+- Flask Application Context / Request Context
+- CORS 基础
+- SQL NULL / COUNT / WHERE vs HAVING
+- 至少 1 道限时 Python/SQL Coding
+- 至少 1 道接口故障排查题
+- 项目真实性、设计取舍、重构思路、AI 生成代码如何验证
+
+真实面试更偏：
+项目连续深挖 → 基础抽查 → Coding/SQL → 场景排障，
+而不是大段背定义。
+
+## 渔芯写路径重要事实修正
+
+当前运行时代码 kernel/runner.py 的真实顺序：
+
+~~~
+业务写
+→ invariants
+→ 同事务 reload after
+→ 同事务写 success audit
+→ 退出 UnitOfWork
+→ commit
+→ commit 成功后返回 executed
+~~~
+
+对于幂等写：
+
+~~~
+业务 commit
+→ mark_completed
+→ 返回 executed
+~~~
+
+如果业务可能已提交但幂等状态收口失败，需要进入 COMMIT_UNKNOWN 处理，不能自动重复执行。
+
+注意：
+docs/WRITE_CONTRACT.md 中仍存在“commit 后回读”的旧描述；面试与课程以当前运行时代码为事实源，不背漂移文档。

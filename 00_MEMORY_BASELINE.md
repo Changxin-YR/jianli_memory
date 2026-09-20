@@ -323,3 +323,48 @@ L4：能回答取舍、异常场景和连续追问
 
 注意：
 docs/WRITE_CONTRACT.md 中仍存在“commit 后回读”的旧描述；面试与课程以当前运行时代码为事实源，不背漂移文档。
+
+
+## 渔芯投喂链路事实修正
+
+当前 production 代码的真实语义：
+
+~~~
+feeding.create
+→ 创建 draft 投喂单
+
+feeding.verify
+→ 核验投喂
+→ 扣减物料库存
+→ 写 inventory_ledger
+→ 记录成本相关事实
+→ 调 cost 域归集成本
+→ 状态变为 verified
+~~~
+
+必须避免错误说法：
+
+“feeding.create 一执行就立即扣库存并记成本。”
+
+另外：
+
+feeding.verify 消耗的是物料库存，不减少鱼的塘内存塘数量；出塘核验才会减少存塘。
+
+## Day 1 最终防守点
+
+除原核心外，Day 1 还需要基础防守：
+
+- decorator
+- generator / yield
+- shallow copy / deep copy
+- async / await
+- Flask Application Factory
+- Application Context / Request Context
+- CORS
+- SQL 参数化与 SQL 注入
+- NULL / COUNT / WHERE vs HAVING
+- 15 分钟 Python/SQL Coding
+- 接口故障排查
+- AI Coding 真实性与责任边界
+
+这些只按 A/B/C 优先级学习，不增加 Day 1 总时长。

@@ -47,3 +47,63 @@
 结论：
 
 Day 1 课件可作为 2026-09-21 的正式学习版本。
+
+
+## Day 1 第三轮终审：企业真实面试对齐
+
+检查依据：
+
+- 2026 年 AI 应用开发 / Agent / AI 全栈公开岗位要求
+- 2026 年公开 AI/Agent 实习面经
+- 当前渔芯运行时代码，而不是只依赖设计文档
+
+发现并修正的问题：
+
+1. **Python 高频点不够全**
+   - 原版缺少装饰器、生成器/迭代器、yield、深浅拷贝。
+   - 近期 Python/AI 开发实习真实面经中仍会抽查这些基础。
+   - 已补入，但控制在 L2～L3，不扩展到 CPython 底层。
+
+2. **Flask 全栈面试防守不足**
+   - 原版只讲 current_app，缺 Application Context / Request Context。
+   - 缺少 CORS 与浏览器调通/接口排障场景。
+   - 已补。
+
+3. **SQL 基础存在低级风险**
+   - 原版 JOIN/GROUP BY 有了，但缺 NULL、COUNT、WHERE vs HAVING。
+   - 这些属于真实一面可能快速筛人的基础题。
+   - 已补，并加入“查无投喂记录塘口”业务 SQL。
+
+4. **模拟面试过于偏定义题**
+   - 原版容易训练成“会背答案”。
+   - 已新增：项目真实性、最难 Bug、重构、技术取舍、AI 生成代码验证、接口 500 排障。
+
+5. **缺少限时 Coding**
+   - 当前 AI 应用/全栈岗位仍可能出现 Python/SQL/简单算法题。
+   - 已加入 15 分钟 Python Coding，并调整终测评分。
+
+6. **发现一处重要项目事实错误**
+   - 原课件根据 WRITE_CONTRACT 写成“commit 后回读”。
+   - 当前 kernel/runner.py 实际是：事务内写入 → invariants → reload after → audit → commit → 返回 executed。
+   - 幂等路径在业务 commit 后再 mark_completed。
+   - 已按运行时代码修正课件，并在记忆基线记录“文档漂移”。
+
+7. **Day 1 深度重新裁剪**
+   - 不把 MVCC、Next-Key Lock、GIL、RAG、LangGraph 提前塞进 Day 1。
+   - 这些保留后续日程。
+   - Day 1 重点仍然是项目真实性 + Python/Flask/MySQL/事务。
+
+终审结论：
+
+Day 1 现在更接近真实 AI 全栈 / AI 应用开发一面结构：
+
+~~~
+自我介绍/项目
+→ 项目连续追问
+→ Python/Flask/MySQL 基础抽查
+→ 一道 Coding/SQL
+→ 一个故障场景
+→ 继续项目取舍追问
+~~~
+
+不再把“答出定义”视为真正掌握。

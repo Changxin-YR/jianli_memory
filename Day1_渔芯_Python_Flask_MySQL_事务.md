@@ -1333,7 +1333,7 @@ CSRF = Cross-Site Request Forgery。
 
 ---
 
-# 30.1 Application Factory 与 Blueprint：Flask 基础防守
+# 31.1 Application Factory 与 Blueprint：Flask 基础防守
 
 渔芯真实代码里有 `create_app(...)`，这属于 Application Factory 思想。
 
@@ -1370,7 +1370,7 @@ Blueprint 是 Flask 用来组织一组相关路由和逻辑的机制，适合模
 
 ---
 
-# 31.1 Flask Application Context 与 Request Context
+# 31.2 Flask Application Context 与 Request Context
 
 原课件只讲了 current_app，不足以应付真实 Flask 追问，这里补齐到面试所需深度。
 
@@ -1402,7 +1402,7 @@ Flask 通过上下文机制把“当前应用/当前请求”绑定到当前执�
 
 ---
 
-# 31.2 CORS：全栈面试常见但只需基础
+# 31.3 CORS：全栈面试常见但只需基础
 
 CORS = Cross-Origin Resource Sharing。
 
@@ -1426,7 +1426,7 @@ CORS 响应头、预检 OPTIONS、允许的方法/Header/Origin 等浏览器跨�
 
 ---
 
-# 31.3 浏览器请求失败时怎么排查
+# 31.4 浏览器请求失败时怎么排查
 
 这类题比纯定义更接近真实企业。
 
@@ -1626,7 +1626,7 @@ LIMIT 5;
 
 ---
 
-# 37.1 手写 SQL 必须会：参数化查询与 SQL 注入
+# 38.1 手写 SQL 必须会：参数化查询与 SQL 注入
 
 你的第一项目使用 PyMySQL + 手写 SQL，这个问题非常容易被面试官追问。
 
@@ -1677,7 +1677,7 @@ cursor.execute(
 
 ---
 
-# 38.1 NULL、COUNT、WHERE 与 HAVING
+# 38.2 NULL、COUNT、WHERE 与 HAVING
 
 这是原课件 SQL 基础的明显缺口，真实一面很容易用来快速判断 SQL 熟练度。
 
@@ -1748,7 +1748,7 @@ FROM feedings;
 
 ---
 
-# 38.2 SQL 面试不要只会“背 JOIN”
+# 38.3 SQL 面试不要只会“背 JOIN”
 
 企业面试可能直接给业务题：
 
@@ -2450,6 +2450,25 @@ def top_permissions(events):
 - 这和事务提交、幂等状态、COMMIT_UNKNOWN 有什么关系
 
 Day 1 能说出排查框架即可，幂等细节 Day 2 深入。
+
+---
+
+## 52.1 备用 Coding：只有主任务提前完成才做
+
+近期 AI Agent 开发公开面经里仍出现过“合并两个有序数组”这类基础手撕题。
+
+备用题：
+
+> 给两个升序数组，合并成一个新的升序数组。
+
+要求：
+
+- 先说双指针思路
+- 再写代码
+- 说时间复杂度 O(n + m)
+- 不要为了炫技上复杂数据结构
+
+这题不是 Day 1 必做。如果核心项目、Flask、事务还没过关，直接跳过。
 
 ---
 

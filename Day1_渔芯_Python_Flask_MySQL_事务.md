@@ -1333,6 +1333,43 @@ CSRF = Cross-Site Request Forgery。
 
 ---
 
+# 30.1 Application Factory 与 Blueprint：Flask 基础防守
+
+渔芯真实代码里有 `create_app(...)`，这属于 Application Factory 思想。
+
+核心：
+
+> 不在 import 模块时就把所有应用状态固定死，而是通过函数创建并装配 Flask app。
+
+好处：
+
+- 测试时可以创建不同配置的 app
+- 更容易替换 Registry / Runner / AccessService 等依赖
+- 避免大型项目把全局状态写死
+- 不同环境配置更清楚
+
+渔芯就是通过 `create_app` 把 Registry、Runner、AccessService、ScopeResolver 等对象装进 app.config，再注册路由和中间件。
+
+### Blueprint 是什么
+
+Blueprint 是 Flask 用来组织一组相关路由和逻辑的机制，适合模块化大型应用。
+
+但是：
+
+> 渔芯当前核心业务路由不是“每个领域一个 Blueprint + 手写 @route”这种模式，而是 Capability Registry + add_url_rule 动态注册。
+
+如果面试官问：
+
+“你项目用了 Blueprint 吗？”
+
+不要因为学过 Flask 就顺口说用了。
+
+更稳妥：
+
+“这个项目主要不是依靠 Blueprint 划分业务 Route，而是通过 Application Factory 装配应用，再从 Capability Registry 动态注册业务路由。Blueprint 是 Flask 常见模块化手段，我知道它适合组织相关路由，但这里的路由组织方式不一样。”
+
+---
+
 # 31.1 Flask Application Context 与 Request Context
 
 原课件只讲了 current_app，不足以应付真实 Flask 追问，这里补齐到面试所需深度。
@@ -1586,6 +1623,57 @@ LIMIT 5;
 “INNER JOIN 只返回两边满足连接条件的记录；LEFT JOIN 会保留左表全部记录，右侧匹配不到时补 NULL。选择取决于业务上是否允许左侧对象没有关联记录。”
 
 一定要加最后一句业务语义。
+
+---
+
+# 37.1 手写 SQL 必须会：参数化查询与 SQL 注入
+
+你的第一项目使用 PyMySQL + 手写 SQL，这个问题非常容易被面试官追问。
+
+危险写法：
+
+~~~python
+sql = f"SELECT * FROM users WHERE username = '{username}'"
+cursor.execute(sql)
+~~~
+
+如果 username 来自用户输入，攻击者可能构造特殊输入改变 SQL 语义。
+
+正确思想：
+
+~~~python
+cursor.execute(
+    "SELECT * FROM users WHERE username = %s",
+    (username,)
+)
+~~~
+
+让数据库驱动负责参数绑定。
+
+必须理解：
+
+> 参数化查询解决的是“数据值”与 SQL 结构分离的问题。
+
+不要说：
+
+“用了 %s 就是 Python 字符串格式化。”
+
+在 PyMySQL `cursor.execute(sql, params)` 里，参数是交给驱动做绑定/转义处理，不是你自己用 `% username` 拼字符串。
+
+### 动态表名怎么办
+
+参数占位符通常用于“值”，不能直接把表名/列名当普通参数绑定。
+
+如果确实需要动态表名：
+
+- 来源必须是服务端受控白名单
+- 不允许直接把用户输入拼成标识符
+
+### 项目化回答
+
+“因为渔芯使用手写 SQL，所以我会特别区分 SQL 结构与用户输入值。业务值都通过 execute 的 params 绑定，不用 f-string 拼用户输入；如果是动态列名、排序字段这类不能参数化的结构，则必须从服务端白名单选择。”
+
+这是非常真实的后端面试回答。
 
 ---
 
@@ -2221,6 +2309,8 @@ PyMySQL + 手写 SQL + UnitOfWork。
 16. Capability 和普通 Service 方法有什么区别？
 17. 为什么不让前端决定当前用户是什么角色？
 18. 为什么 Agent 不直接调用任意 URL/SQL？
+19. 你们用手写 SQL，怎么防 SQL 注入？
+20. create_app 为什么比全局直接 new 一个 app 更适合测试？
 
 以上问题比单纯“Flask 是什么”更重要。
 
@@ -2259,8 +2349,10 @@ PyMySQL + 手写 SQL + UnitOfWork。
 10. 渔芯为什么动态注册 Route？
 11. Application Context 和 Request Context 大致分别解决什么？
 12. Postman 能通、浏览器跨域失败时你会查什么？
+13. Application Factory 解决什么问题？
+14. Blueprint 是什么？渔芯为什么主要没靠它组织业务路由？
 
-达标：10/12。
+达标：11/14。
 
 ---
 
@@ -2279,8 +2371,10 @@ PyMySQL + 手写 SQL + UnitOfWork。
 11. COUNT(*) 与 COUNT(column) 的 NULL 语义有什么区别？
 12. WHERE 与 HAVING 有什么区别？
 13. 如何查“没有投喂记录的塘口”？
+14. 手写 SQL 怎么防 SQL 注入？
+15. 为什么不能把用户输入直接 f-string 到 SQL？
 
-达标：10/13。
+达标：12/15。
 
 ---
 

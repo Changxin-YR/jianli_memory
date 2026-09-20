@@ -721,6 +721,148 @@ Decimal("0.1")
 
 ---
 
+# 17.1 装饰器：真实 Python 面试高频补充
+
+这部分原课件缺失，终审后补入。
+
+装饰器的核心不是背 `@xxx`，而是：
+
+> 在不直接修改原函数主体的情况下，用另一个可调用对象包装或增强它。
+
+最小例子：
+
+~~~python
+def log_call(func):
+    def wrapper(*args, **kwargs):
+        print("before")
+        result = func(*args, **kwargs)
+        print("after")
+        return result
+    return wrapper
+
+@log_call
+def create_pond(name):
+    return name
+~~~
+
+它大致等价于：
+
+~~~python
+create_pond = log_call(create_pond)
+~~~
+
+为什么后端面试爱问：
+
+- Flask 常见路由/鉴权写法大量使用装饰器思想
+- pytest fixture、缓存、权限、日志等工程代码也常见
+- 能检验你是否真正理解函数是一等对象
+
+项目关联：
+
+渔芯当前业务 Route 主要不是靠大量 `@app.route` 手写，而是 Capability + `add_url_rule` 动态注册，所以**不要把 Flask route decorator 说成渔芯当前的核心路由实现**。
+
+面试回答至少能说：
+
+“装饰器本质是接收函数并返回新函数/可调用对象的包装机制，常用于日志、鉴权、缓存、路由注册等横切逻辑。需要注意保留原函数元信息时一般配合 functools.wraps。”
+
+今天达到 L2～L3。
+
+---
+
+# 17.2 迭代器、生成器与 yield
+
+真实 Python/AI 应用面试中会抽查。
+
+迭代器：
+
+能按顺序逐个产生元素，并维护当前位置的对象。
+
+生成器：
+
+一种方便创建迭代器的方式，通常由包含 `yield` 的函数产生。
+
+~~~python
+def ids():
+    for i in range(3):
+        yield i
+~~~
+
+与一次性构造大 list 相比，生成器可以按需产生数据，适合：
+
+- 大量数据逐批处理
+- 文件/日志流
+- 分页数据
+- 流式处理管线
+
+不要说“生成器一定更快”。
+
+更准确：
+
+> 生成器主要优势是惰性计算和降低一次性内存占用，速度取决于场景。
+
+今天达到 L2。
+
+---
+
+# 17.3 深拷贝与浅拷贝
+
+这是近期 Python/AI 开发实习真实面经中出现过的问题，补入 Day 1 防守区。
+
+浅拷贝：
+
+复制最外层容器，但内部嵌套可变对象仍可能共享引用。
+
+~~~python
+import copy
+b = copy.copy(a)
+~~~
+
+深拷贝：
+
+递归复制嵌套对象。
+
+~~~python
+b = copy.deepcopy(a)
+~~~
+
+典型问题：
+
+~~~python
+a = [{"name": "pond-1"}]
+b = a.copy()
+b[0]["name"] = "changed"
+~~~
+
+此时 a 内部也可能看到 changed，因为内部 dict 还是同一个对象。
+
+项目化理解：
+
+如果你复制的是多层 payload、配置或状态对象，随后会修改嵌套数据，就要知道是否允许共享引用。不要机械地“全部 deepcopy”，因为深拷贝也有性能成本，并且某些资源对象并不适合被复制。
+
+今天达到 L2。
+
+---
+
+# 17.4 列表推导式与常见 Python 表达能力
+
+能看懂并写：
+
+~~~python
+active_ids = [row["id"] for row in rows if row["status"] == "active"]
+~~~
+
+能理解：
+
+- list comprehension
+- dict comprehension
+- set comprehension
+
+企业面试通常不会因为你不会高级语法直接淘汰，但如果连项目里常见的 Python 表达都读不顺，会影响代码阅读评价。
+
+今天达到 L2。
+
+---
+
 # 18. Python 今日面试题清单
 
 必须秒答：
@@ -740,6 +882,13 @@ Decimal("0.1")
 13. 类型注解有什么价值？
 14. Decimal 为什么比 float 更适合金额？
 15. Protocol 大致解决什么问题？
+16. 装饰器本质是什么？functools.wraps 为什么常用？
+17. 生成器和普通 list 的主要取舍是什么？
+18. yield 做了什么？
+19. 浅拷贝和深拷贝有什么区别？
+20. 为什么不能遇到嵌套对象就无脑 deepcopy？
+
+其中 1、2、7、8、9、11、13、14、16、17、19 属于优先题。
 
 今日不要花时间深挖：
 
@@ -1040,6 +1189,84 @@ CSRF = Cross-Site Request Forgery。
 
 ---
 
+# 31.1 Flask Application Context 与 Request Context
+
+原课件只讲了 current_app，不足以应付真实 Flask 追问，这里补齐到面试所需深度。
+
+你先记两个概念：
+
+Application Context：
+
+让当前执行代码能访问当前 Flask 应用相关对象，例如 `current_app`、`g`。
+
+Request Context：
+
+与一次 HTTP 请求相关，让代码能访问 `request`、`session` 等请求级对象。
+
+面试时不需要背 Flask 内部 LocalProxy 源码。
+
+必须能回答：
+
+“为什么不用到处传 app 和 request？”
+
+核心：
+
+Flask 通过上下文机制把“当前应用/当前请求”绑定到当前执行环境，使业务和扩展代码可以通过代理对象访问，同时避免把这些对象作为参数层层传递。
+
+项目关联：
+
+渔芯 Web 层通过 `current_app.config` 获取 Registry、Runner、AccessService 等应用级依赖，通过 `request` 读取当前 HTTP 输入。
+
+今天达到 L2～L3。
+
+---
+
+# 31.2 CORS：全栈面试常见但只需基础
+
+CORS = Cross-Origin Resource Sharing。
+
+浏览器存在同源策略；当页面与 API 的协议、域名或端口不满足同源条件时，浏览器可能对跨域请求施加限制。
+
+必须区分：
+
+- CORS 是浏览器安全策略相关问题
+- 它不是服务端“网络完全访问不到”
+- 它和 CSRF 不是一个问题
+
+面试追问：
+
+“Postman 能调通，浏览器报跨域，可能是什么原因？”
+
+优先想到：
+
+CORS 响应头、预检 OPTIONS、允许的方法/Header/Origin 等浏览器跨域配置，而不是先怀疑数据库。
+
+今天达到 L2。
+
+---
+
+# 31.3 浏览器请求失败时怎么排查
+
+这类题比纯定义更接近真实企业。
+
+场景：
+
+“前端点创建塘口，页面提示失败，你怎么定位？”
+
+建议回答顺序：
+
+1. 浏览器 Network：请求有没有发出、URL/Method/Body 是否正确
+2. 看 HTTP 状态码和响应业务 code
+3. 看 request_id
+4. 服务端按 request_id 查日志
+5. 判断失败发生在鉴权、参数校验、CapabilityRunner、业务 Service 还是数据库
+6. 如果是数据库错误，再看 SQL、约束、事务状态
+7. 修复后补对应测试，避免只手点一次
+
+面试官想看的不是“我会 print”，而是你有没有系统排障路径。
+
+---
+
 # 32. 第五模块：MySQL 与 SQL
 
 今天目标不是 DBA。
@@ -1218,6 +1445,102 @@ LIMIT 5;
 
 ---
 
+# 38.1 NULL、COUNT、WHERE 与 HAVING
+
+这是原课件 SQL 基础的明显缺口，真实一面很容易用来快速判断 SQL 熟练度。
+
+## NULL
+
+判断 NULL：
+
+~~~sql
+WHERE column_name IS NULL
+~~~
+
+不要写：
+
+~~~sql
+WHERE column_name = NULL
+~~~
+
+因为 SQL 中 NULL 表示未知，普通等号比较不会按你直觉工作。
+
+## COUNT
+
+~~~sql
+COUNT(*)
+~~~
+
+统计行数。
+
+~~~sql
+COUNT(column_name)
+~~~
+
+通常只统计该列非 NULL 的行。
+
+面试时不要把二者说成永远完全等价。
+
+## WHERE 与 HAVING
+
+WHERE：
+
+聚合前筛选行。
+
+HAVING：
+
+聚合后筛选分组。
+
+例如找总投喂量超过 1000 的塘口：
+
+~~~sql
+SELECT pond_id, SUM(quantity) AS total
+FROM feedings
+WHERE status = 'verified'
+GROUP BY pond_id
+HAVING SUM(quantity) > 1000;
+~~~
+
+## DISTINCT
+
+用于结果去重：
+
+~~~sql
+SELECT DISTINCT pond_id
+FROM feedings;
+~~~
+
+今天要求：
+
+能写对，不需要研究优化器如何重写。
+
+---
+
+# 38.2 SQL 面试不要只会“背 JOIN”
+
+企业面试可能直接给业务题：
+
+“查出没有任何投喂记录的塘口。”
+
+一种写法：
+
+~~~sql
+SELECT p.id, p.name
+FROM ponds AS p
+LEFT JOIN feedings AS f
+    ON f.pond_id = p.id
+WHERE f.id IS NULL;
+~~~
+
+面试官真正想看：
+
+- 你是否能把业务语言翻译成表关系
+- JOIN 条件是否正确
+- 是否理解 NULL
+- 是否知道结果重复问题
+
+---
+
 # 39. 第六模块：事务——Day 1 第二重点
 
 ## 39.1 为什么有事务
@@ -1368,47 +1691,98 @@ COMMIT
 
 ---
 
-# 45. 写操作真实性：Agent 项目的高价值设计点
+# 45. 写操作真实性：以当前运行时代码为准
 
-虽然 Agent 深度在后面学，但今天先理解一个核心事实。
+这一节终审时发现原课件有一个重要事实错误，已经修正。
 
-系统不能让模型自己宣布：
+原课件写成了：
 
-“已经成功创建/修改了。”
+“commit → 再回读数据库 → 返回 executed”。
 
-项目的写路径强调：
+**当前 `CapabilityRunner` 的真实运行顺序不是这样。**
+
+当前非幂等写路径更准确的顺序是：
 
 ~~~
-校验
+参数/身份/权限/DataScope 等前置检查
  ↓
-事务写入
+进入 with uow.begin() 事务
  ↓
-commit
+加载 before
  ↓
-重新读取真实资源
+调用 Domain Service 完成写入
  ↓
-确认结果
+执行 invariants
  ↓
-服务端返回成功事实
+在同一个事务中 reload after
  ↓
-模型只负责转述
+在同一个事务中写 success audit
+ ↓
+退出 with
+ ↓
+UnitOfWork commit
+ ↓
+commit 成功后才构造并返回 kind="executed"
 ~~~
 
-核心原则：
+因此必须把两个概念分开：
 
-> “执行了代码”不等于“业务事实已经正确落库”。
+### ① “回读验证”发生在哪里？
 
-因此项目把成功状态建立在数据库提交与回读事实之上。
+发生在**业务事务内部、commit 之前**。
 
-面试问题：
+它确认当前事务视角中的目标资源能被重新加载，并让审计拿到 after 状态。
 
-“Tool 已经返回 success，为什么还要回读？”
+### ② 什么时候才能向调用方返回 executed？
 
-项目化回答：
+只有 `with uow.begin()` 正常退出、commit 成功之后。
 
-“因为工具函数被调用只能证明代码路径执行过，不能完全代表最终业务状态就是预期状态。这个项目把执行与事实分开，写操作提交以后重新读取目标资源，用真实数据库状态构造结果；模型不能凭自然语言自行宣布成功。”
+如果业务处理中、Invariant、reload、audit 或 commit 发生异常，都不会走到正常的 executed 返回。
 
-今天理解到 L3；Agent Gateway 细节 Day 3 再深入。
+### 幂等路径还多一步
+
+幂等写大致是：
+
+~~~
+预留 Idempotency-Key
+ ↓
+业务事务
+   service
+   → invariants
+   → reload
+   → audit
+   → commit
+ ↓
+commit 成功
+ ↓
+mark_completed
+ ↓
+返回 executed
+~~~
+
+如果业务已经提交，但“幂等完成状态”落库失败，当前实现不会轻率自动重试，而会进入 COMMIT_UNKNOWN 类处理，提示核对真实业务数据。
+
+这正是一个很好的企业面试点：
+
+> 分布式/跨事务流程中，最难的不是 happy path，而是“业务可能已提交，但外围状态写失败”这种不确定状态。
+
+Day 1 只理解，不要求深入实现；Day 2 学幂等时继续。
+
+### 为什么要特别修这一点
+
+项目中的 `docs/WRITE_CONTRACT.md` 仍存在“提交后回读”的旧描述，而当前 `kernel/runner.py` 的运行时代码是“事务内回读、成功 commit 后才返回 executed”。
+
+面试以**当前运行时代码**为事实基线，不背已经与代码产生漂移的旧文档表述。
+
+### 面试问题
+
+“你怎么保证 Agent 不会在数据库写失败时还告诉用户成功？”
+
+推荐回答：
+
+“成功状态不是模型自己判断的。调用进入受控 CapabilityRunner 后，业务写、业务不变量、回读和成功审计都在事务边界内完成；只有事务正常提交以后，Runner 才向上返回 executed。高风险操作还有确认闸门，幂等写在业务 commit 后还要收口幂等状态。模型拿到的是服务端结构化结果，只负责转述。”
+
+这个回答比“我们 commit 后再 SELECT 一次”更符合当前代码。
 
 ---
 
@@ -1629,6 +2003,49 @@ PyMySQL + 手写 SQL + UnitOfWork。
 
 ---
 
+# 48.1 更接近真实企业的一面追问
+
+原版题目偏“知识确认”，终审后补入真实项目深挖型问题。
+
+这些问题没有一句话标准答案，面试官会根据你的回答继续追。
+
+## 项目真实性
+
+1. 这个项目哪些模块是你真正重点参与设计和验证的？
+2. 如果让我现在打开代码，你最熟的是哪三个文件？为什么？
+3. 你做这个项目时最难定位的一次 Bug 是什么？怎么确认根因？
+4. 哪一个设计你现在回头看会改？
+5. 如果删掉 Capability Registry，系统最先会出现什么维护问题？
+6. 这个项目为什么不是“AI 帮你生成出来的一个 Demo”？
+7. 你如何验证 AI 生成的代码没有破坏权限、事务或业务规则？
+
+回答原则：
+
+不要编不存在的生产事故、用户规模或性能数据。
+
+不知道具体数字就明确说“这个项目没有真实生产规模数据，我验证的是功能/事务/权限/测试闭环”，比伪造 QPS 更可信。
+
+## 后端链路
+
+8. 任选一个 pond.create 请求，从浏览器一路讲到 MySQL。
+9. 如果接口返回 409，你会优先想到哪些类型的问题？
+10. 如果接口返回 500，但数据库里已经有数据，你会怎么判断是否发生“提交状态未知”？
+11. 如果前端重复点击创建按钮，系统可能发生什么？怎么防？（Day 2 深入）
+12. 你为什么让事务边界在 UnitOfWork，而不是每个 SQL 方法自己控制？
+
+## 代码与设计取舍
+
+13. 为什么这个项目用 PyMySQL 手写 SQL，而你的其他项目用了 ORM？
+14. 手写 SQL 的缺点是什么？
+15. 如果现在让你把渔芯换成 FastAPI，你会改什么、不会改什么？
+16. Capability 和普通 Service 方法有什么区别？
+17. 为什么不让前端决定当前用户是什么角色？
+18. 为什么 Agent 不直接调用任意 URL/SQL？
+
+以上问题比单纯“Flask 是什么”更重要。
+
+---
+
 # 49. Python 面试快速检查
 
 关掉课件后回答：
@@ -1660,8 +2077,10 @@ PyMySQL + 手写 SQL + UnitOfWork。
 8. errorhandler 的价值？
 9. REST 是不是等于 CRUD？
 10. 渔芯为什么动态注册 Route？
+11. Application Context 和 Request Context 大致分别解决什么？
+12. Postman 能通、浏览器跨域失败时你会查什么？
 
-达标：8/10。
+达标：10/12。
 
 ---
 
@@ -1677,12 +2096,15 @@ PyMySQL + 手写 SQL + UnitOfWork。
 8. ACID 分别是什么？
 9. commit 和 rollback 分别什么时候？
 10. 为什么事务不能无限大？
+11. COUNT(*) 与 COUNT(column) 的 NULL 语义有什么区别？
+12. WHERE 与 HAVING 有什么区别？
+13. 如何查“没有投喂记录的塘口”？
 
-达标：8/10。
+达标：10/13。
 
 ---
 
-# 52. 今日必须手写的 4 个题
+# 52. 今日必须手写 / 实操的 6 个题
 
 不要复制。
 
@@ -1713,6 +2135,48 @@ Vue → Flask → Capability → Runner → Domain → UnitOfWork → PyMySQL �
 
 并口述每层职责。
 
+## 题 5｜15 分钟 Python Coding
+
+实现：
+
+~~~python
+def top_permissions(events):
+    """
+    events = [
+        ("u1", "pond.view"),
+        ("u1", "pond.create"),
+        ("u1", "pond.view"),
+        ("u2", "pond.view"),
+    ]
+    返回每个用户去重后的权限集合
+    """
+~~~
+
+要求：
+
+- 自己选合适的数据结构
+- 解释时间复杂度
+- 解释为什么不是 list 里反复查重
+
+这不是算法竞赛题，主要检查 Python 基础和表达。
+
+## 题 6｜故障排查
+
+场景：
+
+“前端创建塘口后提示 500，但用户刷新页面发现塘口已经存在。”
+
+你需要按顺序说出：
+
+- 浏览器/响应信息看什么
+- request_id 怎么用
+- 服务端日志看什么
+- 数据库看什么
+- 为什么不能直接让前端自动重试
+- 这和事务提交、幂等状态、COMMIT_UNKNOWN 有什么关系
+
+Day 1 能说出排查框架即可，幂等细节 Day 2 深入。
+
 ---
 
 # 53. 今日禁止死磕内容
@@ -1741,13 +2205,17 @@ Vue → Flask → Capability → Runner → Domain → UnitOfWork → PyMySQL �
 
 ## Part A：项目 30 分
 
-1. 3 分钟介绍渔芯（8 分）
-2. 画业务主链（5 分）
-3. 画技术调用链（5 分）
-4. Capability Registry 是什么（6 分）
-5. 为什么这样设计（6 分）
+1. 3 分钟介绍渔芯（6 分）
+2. 画业务主链（4 分）
+3. 任选一个请求讲完整调用链（5 分）
+4. Capability Registry 是什么、为什么存在（5 分）
+5. 讲一个真实代码位置并解释职责（4 分）
+6. 回答“如果现在重构你会改什么”（3 分）
+7. 回答“你如何验证 AI 生成代码没有破坏业务规则”（3 分）
 
 合格：24/30。
+
+这一部分故意减少“背架构图”分值，提高项目真实性、取舍和验证能力。
 
 ## Part B：Python 20 分
 
@@ -1799,7 +2267,9 @@ Vue → Flask → Capability → Runner → Domain → UnitOfWork → PyMySQL �
 
 合格：15/20。
 
-## Part E：代码定位 10 分
+## Part E：Coding + 代码定位 10 分
+
+其中 5 分做 15 分钟 Python/SQL 小题，5 分做代码定位。
 
 不用精确行号，但必须知道：
 
@@ -1809,7 +2279,7 @@ Vue → Flask → Capability → Runner → Domain → UnitOfWork → PyMySQL �
 - 业务域：backend/yuxin/domains
 - 生产写路径：backend/yuxin/domains/production/write.py
 
-合格：8/10。
+代码定位 + Coding 合计：至少 7/10。
 
 总分合格线：78/100。
 
@@ -1926,6 +2396,8 @@ MCP
 - MySQL 基础题至少 75%
 - UnitOfWork 能承受至少 3 层追问
 - 能在真实仓库定位 5 个核心位置
+- 能完成 1 道 15 分钟 Python/SQL 小题
+- 能回答 1 个接口故障排查场景
 - 综合测试 ≥ 78/100
 
 完成后把成绩、错误题、薄弱点更新到本仓库 PROGRESS.md。
